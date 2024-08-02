@@ -1,0 +1,37 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  dockerRegistryServiceConnection: 'my-azure-service-connection'
+  acrName: 'myprojectacrregistry'
+  imageName: 'myapp'
+
+steps:
+- task: Docker@2
+  inputs:
+    command: 'buildAndPush'
+    repository: '$(acrName).azurecr.io/$(imageName)'
+    dockerfile: 'Dockerfile'
+    containerRegistry: '$(dockerRegistryServiceConnection)'
+    tags: |
+      $(Build.BuildId)
+      latest
+
+- script: |
+    mkdir -p $(Build.ArtifactStagingDirectory)
+    echo "Artifact directory created"
+  displayName: 'Create artifact staging directory'
+
+- script: |
+    cp -r * $(Build.ArtifactStagingDirectory)
+    echo "Files copied to artifact staging directory"
+  displayName: 'Copy files to artifact staging directory'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
